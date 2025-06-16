@@ -39,19 +39,15 @@ const AppContextProvider = ({ children }) => {
     }
   };
 
-  const fetchUserData = async (token = userToken) => {
+  const fetchUserData = async (token) => {
     if (!token) return;
     setUserLoading(true);
     try {
-      // include your backendUrl prefix here
       const { data } = await axios.get(`${backendUrl}/api/users/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (data.success) {
-        setUserData(data.user);
-      } else {
-        setUserData(null);
-      }
+      if (data.success) setUserData(data.user);
+      else setUserData(null);
     } catch (err) {
       setUserData(null);
       toast.error(err.message);
@@ -62,11 +58,12 @@ const AppContextProvider = ({ children }) => {
 
   useEffect(() => {
     fetchJobs();
-    const storedCompanyToken = localStorage.getItem("companyToken");
-    if (storedCompanyToken) setCompanyToken(storedCompanyToken);
 
-    const storedUserToken = localStorage.getItem("userToken");
-    if (storedUserToken) setUserToken(storedUserToken);
+    const ct = localStorage.getItem("companyToken");
+    if (ct) setCompanyToken(ct);
+
+    const ut = localStorage.getItem("userToken");
+    if (ut) setUserToken(ut);
   }, []);
 
   const fetchCompanyData = async () => {
@@ -86,18 +83,12 @@ const AppContextProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    if (companyToken) {
-      fetchCompanyData();
-    }
+    if (companyToken) fetchCompanyData();
   }, [companyToken]);
 
   useEffect(() => {
-    const token = localStorage.getItem("userToken");
-    if (token) {
-      setUserToken(token);
-      fetchUserData(token);
-    }
-  }, []);
+    fetchUserData(userToken);
+  }, [userToken]);
 
   const logoutUser = () => {
     localStorage.removeItem("userToken");
@@ -105,6 +96,15 @@ const AppContextProvider = ({ children }) => {
     setUserData(null);
     toast.success("Logged out successfully");
   };
+
+  const onUserLoggedIn = ({ token, user }) => {
+    localStorage.setItem("userToken", token);
+    setUserToken(token);
+    setUserData(user);
+    setShowUserLogin(false);
+    toast.success(`Welcome, ${user.name.split(" ")[0]}!`);
+  };
+
   const value = {
     searchFilter,
     setSearchFilter,
@@ -131,6 +131,7 @@ const AppContextProvider = ({ children }) => {
     userToken,
     setUserToken,
     logoutUser,
+    onUserLoggedIn,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

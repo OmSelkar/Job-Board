@@ -40,6 +40,7 @@ app.use("/api/company", companyRoutes);
 app.use("/api/jobs", jobRoutes);
 
 app.use("/api/users", userAuthRoutes);
+
 app.use("/api/users", verifyJwt, userRoutes);
 
 // PORT
