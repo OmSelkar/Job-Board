@@ -1,5 +1,5 @@
 import React from "react";
-import { assets } from "../assets/assets";
+// import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 const JobCard = ({ job }) => {
 
@@ -7,8 +7,8 @@ const JobCard = ({ job }) => {
   return (
     <div className="border p-6 shadow rounded">
       <div className="flex justify-between items-center">
-        <img className="h-8" src={assets.company_icon} alt="" />
-      </div>
+        <img className="h-8" src={job.companyId.image} alt="" />
+      </div> 
       <h4 className="font-medium text-xl mt-2">{job.title}</h4>
       <div className="flex items-center gap-3 mt-2 text-sx">
         <span className="bg-blue-50 border border-blue-200 px-4 py-1.5 rounded">

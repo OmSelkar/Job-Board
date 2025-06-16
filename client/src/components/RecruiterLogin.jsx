@@ -1,12 +1,17 @@
 import React, { useContext, useEffect, useState } from "react";
 import { assets } from "../assets/assets";
 import { AppContext } from "../context/AppContext";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const RecruiterLogin = () => {
+  const navigate = useNavigate();
   // ✅ 1. Form state for login/signup flow
   const [state, setState] = useState("Login"); // "Login" or "Sign Up"
   const [isTextDataSubmited, setIsTextDataSubmited] = useState(false); // To track "Next" button in Sign Up
-  const { showRecruiterLogin, setShowRecruiterLogin } = useContext(AppContext);
+  const { setShowRecruiterLogin, backendUrl, setCompanyToken, setCompanyData } =
+    useContext(AppContext);
 
   // ✅ 2. Form fields
   const [name, setName] = useState("");
@@ -20,10 +25,52 @@ const RecruiterLogin = () => {
 
     // ✅ Step 1 of Sign Up — go to image upload step
     if (state === "Sign Up" && !isTextDataSubmited) {
-      setIsTextDataSubmited(true);
-      return;
+      return setIsTextDataSubmited(true);
     }
 
+    // connection with backend
+    try {
+      if (state === "Login") {
+        const { data } = await axios.post(backendUrl + "/api/company/login", {
+          email,
+          password,
+        });
+
+        if (data.success) {
+          // console.log(data);
+          setCompanyData(data.company);
+          setCompanyToken(data.token);
+          localStorage.setItem("companyToken", data.token);
+          setShowRecruiterLogin(false);
+          navigate("/dashboard");
+        } else {
+          toast.error(data.message);
+        }
+      } else {
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("email", email);
+        formData.append("password", password);
+        formData.append("image", image);
+        const { data } = await axios.post(
+          backendUrl + "/api/company/register",
+          formData
+        );
+
+        if (data.success) {
+          // console.log(data);
+          setCompanyData(data.company);
+          setCompanyToken(data.token);
+          localStorage.setItem("companyToken", data.token);
+          setShowRecruiterLogin(false);
+          navigate("/dashboard");
+        } else {
+          toast.error(data.message);
+        }
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
     // ✅ Final submission: either Login or Sign Up with image
     console.log("Form Submitted:", {
       name,
@@ -42,13 +89,12 @@ const RecruiterLogin = () => {
       setImage(file);
     }
   };
-  useEffect(()=>{
+  useEffect(() => {
     document.body.style.overflow = "hidden";
-    return ()=>{
-    document.body.style.overflow = "auto";
-
-    }
-  },[])
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
   return (
     <div className="absolute top-0 bottom-0 left-0 right-0 z-10 backdrop-blur-sm bg-blue/30 flex justify-center items-center">
       <form
