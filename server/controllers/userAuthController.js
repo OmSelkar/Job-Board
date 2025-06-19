@@ -2,13 +2,16 @@ import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { v2 as cloudinary } from "cloudinary";
+// import EmailService from "../utils/emailService.js";
 
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: "Missing fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
     }
 
     const userExists = await User.findOne({ email });
@@ -38,6 +41,7 @@ export const registerUser = async (req, res) => {
     }
 
     await newUser.save();
+
 
     const token = generateToken(newUser._id);
 

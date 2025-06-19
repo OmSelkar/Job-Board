@@ -81,15 +81,38 @@ const AppContextProvider = ({ children }) => {
       toast.error(error.message);
     }
   };
-
+  // Functions to fetch the users applied application data
+  const fetchUserApplications = async (token) => {
+    if (!token) return;
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/users/applications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      data.success
+        ? setUserApplications(data.applications)
+        : toast.error(data.message);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        console.warn("Unauthorized fetching applications:", err.response.data);
+      } else {
+        toast.error(err.message);
+      }
+    }
+  };
   useEffect(() => {
     if (companyToken) fetchCompanyData();
   }, [companyToken]);
 
   useEffect(() => {
-    fetchUserData(userToken);
+    if (userToken) {
+      fetchUserData(userToken);
+      fetchUserApplications(userToken);
+    } else {
+      // clear when logged out
+      setUserData(null);
+      setUserApplications([]);
+    }
   }, [userToken]);
-
   const logoutUser = () => {
     localStorage.removeItem("userToken");
     setUserToken(null);
@@ -128,6 +151,7 @@ const AppContextProvider = ({ children }) => {
     userLoading,
     setUserLoading,
     fetchUserData,
+    fetchUserApplications,
     userToken,
     setUserToken,
     logoutUser,

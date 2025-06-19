@@ -2,14 +2,17 @@ import Job from "../models/Job.js";
 import JobApplication from "../models/JobApplication.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from "cloudinary";
-
+// import EmailService from "../utils/emailService.js";
+// import Company from "../models/Company.js";
 // ✅ Get user data (secured with middleware)
 export const getUserData = async (req, res) => {
   try {
     const userId = req.user._id; // from verifyUser middleware
     const user = await User.findById(userId).select("-password");
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
     res.json({ success: true, user });
   } catch (error) {
@@ -40,6 +43,8 @@ export const applyForJob = async (req, res) => {
       date: Date.now(),
     });
 
+
+
     res.json({ success: true, message: "Applied Successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -69,7 +74,9 @@ export const updateUserResume = async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     if (resumeFile) {

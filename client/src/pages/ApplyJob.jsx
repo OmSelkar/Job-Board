@@ -10,54 +10,68 @@ import JobCard from "../components/JobCard";
 import Footer from "../components/Footer";
 import axios from "axios";
 import { toast } from "react-toastify";
+import emailjs from "@emailjs/browser";
 
 const ApplyJob = () => {
   const { id } = useParams();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [jobData, setJobData] = useState(null);
-  const { jobs, backendUrl, userData, userApplications, userLoading,userToken } =
-    useContext(AppContext);
+  const [isAlreadyApplied, setIsAlreadyApplied] = useState(false);
+  const {
+    jobs,
+    backendUrl,
+    userData,
+    userLoading,
+    userToken,
+    userApplications,
+    fetchUserApplications,
+  } = useContext(AppContext);
+
   const fetchJobs = async () => {
     try {
-      const { data } = await axios.get(backendUrl + `/api/jobs/${id}`);
-      if (data.success) {
-        setJobData(data.job);
-      } else {
-        toast.error(data.message);
-      }
+      const { data } = await axios.get(`${backendUrl}/api/jobs/${id}`);
+      if (data.success) setJobData(data.job);
+      else toast.error(data.message);
     } catch (error) {
       toast.error(error.message);
     }
   };
 
   const applyHandler = async () => {
+    if (userLoading) return toast.info("Loading user data, please wait...");
+    if (!userData || !userToken) return toast.error("Login to apply for jobs");
+    if (!userData.resume) {
+      navigate("/applications");
+      return toast.error("Upload resume to apply");
+    }
+
     try {
-      if (userLoading) return toast.info("Loading user data, please wait...");
-
-      if (!userData || !userToken) {
-        console.warn("userData not ready:", userData);
-        return toast.error("Login to apply for jobs");
-      }
-
-      if (!userData.resume) {
-        navigate("/applications")
-        return toast.error("Upload resume to apply");
-      }
-
-      const token = await window.Clerk.session.getToken();
-
       const { data } = await axios.post(
         `${backendUrl}/api/users/apply`,
         { jobId: jobData._id },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${userToken}` } }
       );
 
       if (data.success) {
         toast.success(data.message);
+        // Immediately update application state:
+        setIsAlreadyApplied(true);
+        // Refresh user‑applications in context
+        fetchUserApplications();
+        // EmailJS Notification to Recruiter
+        await emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          "template_z1qq7hk",
+          {
+            recruiter_name: jobData.companyId.name,
+            recruiter_email: jobData.companyId.email,
+            job_title: jobData.title,
+            applicant_name: userData.name,
+            applicant_email: userData.email,
+            application_date: new Date().toLocaleDateString(),
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        );
       } else {
         toast.error(data.message);
       }
@@ -65,9 +79,25 @@ const ApplyJob = () => {
       toast.error(error.message);
     }
   };
+
+  const checkAlreadyApplied = async () => {
+    const hasApplied = userApplications.some(
+      (item) => item.jobId._id === jobData._id
+    );
+    setIsAlreadyApplied(hasApplied);
+  };
+
   useEffect(() => {
     fetchJobs();
   }, [id]);
+
+  useEffect(() => {
+    if (userApplications.length > 0 && jobData) {
+      checkAlreadyApplied();
+    }
+  }, [userApplications, jobData, id]);
+
+  if (!jobData) return <Loading />;
   return jobData ? (
     <>
       <Navbar />
@@ -107,9 +137,12 @@ const ApplyJob = () => {
             <div className="flex flex-col justify-center text-end text-sm max-md:mx-auto max-md:text-center">
               <button
                 onClick={applyHandler}
-                className="bg-blue-600 py-2.5 px-10 text-white rounded"
+                disabled={isAlreadyApplied}
+                className={`bg-blue-600 py-2.5 px-10 text-white rounded ${
+                  isAlreadyApplied && "opacity-50 cursor-not-allowed"
+                }`}
               >
-                Apply Now
+                {isAlreadyApplied ? "Already Applied" : "Apply Now"}
               </button>
               <p className="mt-1 text-gray-600">
                 Posted {moment(jobData.date).fromNow()}
@@ -125,9 +158,12 @@ const ApplyJob = () => {
               ></div>
               <button
                 onClick={applyHandler}
-                className="bg-blue-600 py-2.5 px-10 text-white mt-10 rounded"
+                disabled={isAlreadyApplied}
+                className={`bg-blue-600 py-2.5 px-10 text-white rounded ${
+                  isAlreadyApplied && "opacity-50 cursor-not-allowed"
+                }`}
               >
-                Apply Now
+                {isAlreadyApplied ? "Already Applied" : "Apply Now"}
               </button>
               {/* Recommendation Section / More Jobs */}
             </div>
@@ -139,7 +175,14 @@ const ApplyJob = () => {
                     job._id !== jobData._id &&
                     job.companyId._id === jobData.companyId._id
                 )
-                .filter((job) => true)
+                .filter((job) => {
+                  // Set of applied jobIds
+                  const appliedJobsIds = new Set(
+                    userApplications.map((app) => app.jobId && app.jobId._id)
+                  );
+                  // Return true if the user hasn't applied for this job
+                  return !appliedJobsIds.has(job._id);
+                })
                 .slice(0, 4)
                 .map((job, index) => (
                   <JobCard key={index} job={job} />

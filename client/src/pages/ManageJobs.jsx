@@ -5,56 +5,75 @@ import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import Loading from "../components/Loading";
 
 const ManageJobs = () => {
   const navigate = useNavigate();
 
   const [jobs, setJobs] = useState([]);
   const { backendUrl, companyToken } = useContext(AppContext);
-  //  Functions to fetch Job Applications data
+ const [loading, setLoading] = useState(true);
 
+  // fetch posted jobs
   const fetchCompanyJobs = async () => {
+    setLoading(true);
     try {
-      const { data } = await axios.get(backendUrl + "/api/company/list-jobs", {
-        headers: { token: companyToken },
-      });
+      const { data } = await axios.get(
+        `${backendUrl}/api/company/list-jobs`,
+        { headers: { token: companyToken } }
+      );
       if (data.success) {
         setJobs(data.jobsData.reverse());
-        console.log(data.jobsData);
+        console.log(data.jobsData)
       } else {
         toast.error(data.message);
       }
-    } catch (error) {
-      toast.error(error.message);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Functions to change Job Visibilities
+  // toggle visibility
   const changeJobVisibility = async (id) => {
     try {
       const { data } = await axios.post(
-        backendUrl + "/api/company/change-visibility",
-        {
-          id,
-        },
-        {
-          headers: { token: companyToken },
-        }
+        `${backendUrl}/api/company/change-visibility`,
+        { id },
+        { headers: { token: companyToken } }
       );
       if (data.success) {
         toast.success(data.message);
         fetchCompanyJobs();
       }
-    } catch (error) {
-      toast.error(error.message);
+    } catch (err) {
+      toast.error(err.message);
     }
   };
 
   useEffect(() => {
-    if (companyToken) {
-      fetchCompanyJobs();
-    }
+    if (companyToken) fetchCompanyJobs();
   }, [companyToken]);
+
+  // loading spinner
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loading />
+      </div>
+    );
+  }
+
+  // empty state
+  if (!loading && jobs.length === 0) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-xl sm:text-2xl">No Jobs Available For Now</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container p-4 max-w-5xl">
       <div className="overflow-x-auto">

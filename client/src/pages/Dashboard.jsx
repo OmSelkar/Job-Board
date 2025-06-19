@@ -1,11 +1,11 @@
 import React, { useContext, useEffect } from "react";
-import { Outlet, useNavigate, NavLink } from "react-router-dom";
+import { Routes, Route, Outlet, useNavigate, NavLink } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { AppContext } from "../context/AppContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { companyData, setCompanyData, setCompanyToken } =
+  const { companyData, setCompanyData, setCompanyToken, companyToken } =
     useContext(AppContext);
 
   // Function to logout company
@@ -15,11 +15,30 @@ const Dashboard = () => {
     setCompanyData(null);
     navigate("/");
   };
-  useEffect(()=>{
-    if(companyData){
-      navigate("/dashboard/manage-jobs")
+
+  // Handle authentication and navigation
+  useEffect(() => {
+    
+
+    if (!companyToken) {
+      console.log("No token, redirecting to home");
+      navigate("/", { replace: true });
+      return;
     }
-  },[companyData])
+
+    // Only auto-navigate to manage-jobs if we're exactly on /dashboard
+    const currentPath = window.location.pathname;
+    if (currentPath === "/dashboard") {
+      console.log("Auto-navigating to manage-jobs");
+      navigate("/dashboard/manage-jobs", { replace: true });
+    }
+  }, [companyToken, navigate]); // REMOVED companyData dependency to prevent loops
+
+  // Show loading or redirect if not authenticated
+  if (!companyToken) {
+    return <div>Redirecting...</div>;
+  }
+
   return (
     <div className="min-h-screen">
       {/* Navbar for recruiter panel */}
@@ -27,13 +46,13 @@ const Dashboard = () => {
         <div className="px-5 flex justify-between items-center">
           <img
             onClick={() => navigate("/")}
-            className="max-sm:w-32 cursor-pointer"
+            className="max-sm:w-32 cursor-pointer w-[130px] h-[30px]"
             src={assets.logo}
             alt=""
           />
           {companyData && (
             <div className="flex items-center gap-3">
-              <p className="max-sm:hidden">Welcome, {companyData.name}</p>
+              <p className="max-sm:hidden">Welcome, { companyData.name}</p>
               <div className="relative group">
                 <img
                   className="w-8 border rounded-full"
@@ -41,7 +60,12 @@ const Dashboard = () => {
                 />
                 <div className="absolute hidden group-hover:block top-0 right-0 z-10 text-black rounded-full pt-12">
                   <ul className="list-none m-0 p-2 bg-white rounded-md border text-sm">
-                    <li onClick={logout} className="px-2 py-1 cursor-pointer pr-10">Logout</li>
+                    <li
+                      onClick={logout}
+                      className="px-2 py-1 cursor-pointer pr-10"
+                    >
+                      Logout
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -88,7 +112,7 @@ const Dashboard = () => {
             </NavLink>
           </ul>
         </div>
-        <div>
+        <div className="flex-1 h-full p-2 sm:p-5">
           <Outlet />
         </div>
       </div>

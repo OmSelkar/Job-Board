@@ -5,13 +5,15 @@ import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import emailjs from '@emailjs/browser';
 
 const UserLogin = () => {
   const navigate = useNavigate();
-  const { backendUrl, onUserLoggedIn, setShowUserLogin } = useContext(AppContext);
+  const { backendUrl, onUserLoggedIn, setShowUserLogin } =
+    useContext(AppContext);
 
-  const [state, setState] = useState("Login");        // "Login" or "Sign Up"
-  const [isStepTwo, setIsStepTwo] = useState(false);  // second step of sign‑up
+  const [state, setState] = useState("Login"); // "Login" or "Sign Up"
+  const [isStepTwo, setIsStepTwo] = useState(false); // second step of sign‑up
 
   // form fields
   const [name, setName] = useState("");
@@ -20,8 +22,10 @@ const UserLogin = () => {
   const [image, setImage] = useState(null);
   const [resume, setResume] = useState(null);
 
-  const handleImageUpload = (e) => e.target.files[0] && setImage(e.target.files[0]);
-  const handleResumeUpload = (e) => e.target.files[0] && setResume(e.target.files[0]);
+  const handleImageUpload = (e) =>
+    e.target.files[0] && setImage(e.target.files[0]);
+  const handleResumeUpload = (e) =>
+    e.target.files[0] && setResume(e.target.files[0]);
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -34,21 +38,35 @@ const UserLogin = () => {
     try {
       let resp;
       if (state === "Login") {
-        resp = await axios.post(`${backendUrl}/api/users/login`, { email, password });
+        resp = await axios.post(`${backendUrl}/api/auth/login`, {
+          email,
+          password,
+        });
       } else {
         const formData = new FormData();
         formData.append("name", name);
         formData.append("email", email);
         formData.append("password", password);
-        if (image)  formData.append("image", image);
+        if (image) formData.append("image", image);
         if (resume) formData.append("resume", resume);
-        resp = await axios.post(`${backendUrl}/api/users/register`, formData);
+        resp = await axios.post(`${backendUrl}/api/auth/register`, formData);
       }
 
       const { data } = resp;
       if (data.success) {
         // centralised in AppContext
         onUserLoggedIn({ token: data.token, user: data.user });
+        // ✅ Send welcome email from frontend
+  await emailjs.send(
+    'service_ygxiqjk', // e.g. 'service_xxxxxx'
+    'template_6mcma5b',
+    {
+      user_name: data.user.name,
+      user_email: data.user.email,
+      registration_date: new Date().toLocaleDateString(),
+    },
+    'VIHnUNFHSgZGZ23OS' // Your EmailJS public key
+  );
         navigate("/");
       } else {
         toast.error(data.message);
@@ -78,13 +96,23 @@ const UserLogin = () => {
                   src={image ? URL.createObjectURL(image) : assets.upload_area}
                   alt="Profile Preview"
                 />
-                <input id="image" type="file" hidden onChange={handleImageUpload} />
+                <input
+                  id="image"
+                  type="file"
+                  hidden
+                  onChange={handleImageUpload}
+                />
               </label>
               <p>Upload Profile Image (optional)</p>
             </div>
             <div className="my-6">
               <label className="block text-sm mb-2">Upload Resume</label>
-              <input type="file" onChange={handleResumeUpload} className="text-sm" required />
+              <input
+                type="file"
+                onChange={handleResumeUpload}
+                className="text-sm"
+                required
+              />
             </div>
           </>
         ) : (
@@ -138,19 +166,27 @@ const UserLogin = () => {
 
         <p className="mt-5 text-center">
           {state === "Login" ? (
-            <>Don't have an account?{" "}
+            <>
+              Don't have an account?{" "}
               <span
                 className="text-blue-600 cursor-pointer"
-                onClick={() => { setState("Sign Up"); setIsStepTwo(false); }}
+                onClick={() => {
+                  setState("Sign Up");
+                  setIsStepTwo(false);
+                }}
               >
                 Sign Up
               </span>
             </>
           ) : (
-            <>Already have an account?{" "}
+            <>
+              Already have an account?{" "}
               <span
                 className="text-blue-600 cursor-pointer"
-                onClick={() => { setState("Login"); setIsStepTwo(false); }}
+                onClick={() => {
+                  setState("Login");
+                  setIsStepTwo(false);
+                }}
               >
                 Login
               </span>

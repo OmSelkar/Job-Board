@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "@emailjs/browser": "^4.4.1",
     "@sentry/node": "^9.27.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.6.1",
@@ -22,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.1",
     "multer": "^2.0.1",
+    "nodemailer": "^7.0.3",
     "nodemon": "^3.1.10",
     "svix": "^1.42.0"
   }
